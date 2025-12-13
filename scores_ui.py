@@ -74,9 +74,17 @@ class Ui_MainWindow(object):
         self.pushButtonCalculate.setObjectName("pushButtonCalculate")
 
         self.textEditOutput = QtWidgets.QTextEdit(parent=self.centralwidget)
-        self.textEditOutput.setGeometry(QtCore.QRect(20, 240, 280, 50))
+        self.textEditOutput.setGeometry(QtCore.QRect(20, 240, 280, 35))
         self.textEditOutput.setReadOnly(True)
         self.textEditOutput.setObjectName("textEditOutput")
+
+        self.labelError = QtWidgets.QLabel(parent=self.centralwidget)
+        self.labelError.setGeometry(QtCore.QRect(20, 275, 280, 12))
+        self.labelError.setObjectName("labelError")
+
+        self.labelStatus = QtWidgets.QLabel(parent=self.centralwidget)
+        self.labelStatus.setGeometry(QtCore.QRect(20, 287, 280, 12))
+        self.labelStatus.setObjectName("labelStatus")
 
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -94,3 +102,5 @@ class Ui_MainWindow(object):
         self.labelScore3.setText(_translate("MainWindow", "Score 3"))
         self.labelScore4.setText(_translate("MainWindow", "Score 4"))
         self.pushButtonCalculate.setText(_translate("MainWindow", "Submit"))
+        self.labelError.setText(_translate("MainWindow", ""))
+        self.labelStatus.setText(_translate("MainWindow", ""))
