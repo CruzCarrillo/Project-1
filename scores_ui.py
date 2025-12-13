@@ -79,7 +79,7 @@ class Ui_MainWindow(object):
         self.textEditOutput.setObjectName("textEditOutput")
 
         self.labelError = QtWidgets.QLabel(parent=self.centralwidget)
-        self.labelError.setGeometry(QtCore.QRect(20, 275, 280, 12))
+        self.labelError.setGeometry(QtCore.QRect(20, 275, 300, 12))
         self.labelError.setObjectName("labelError")
 
         self.labelStatus = QtWidgets.QLabel(parent=self.centralwidget)

@@ -1,3 +1,4 @@
+import os
 from PyQt6.QtWidgets import *
 from scores_ui import Ui_MainWindow
 from score_model import ScoreBook
@@ -11,6 +12,11 @@ class ScoreWindow(QMainWindow):
         self.ui.setupUi(self)
 
         self.scorebook = ScoreBook("scores.csv")
+        folder = os.path.dirname(self.scorebook.csv_filename)
+        if folder != "" and not os.path.exists(folder):
+            # found this on the internet, through https://www.geeksforgeeks.org/python/python-check-if-a-file-or-directory-exists/
+            self.show_error("Cannot save: folder for CSV does not exist")
+            return
 
         self.ui.pushButtonCalculate.clicked.connect(self.on_calculate_clicked)
         self.ui.lineEditStudents.textChanged.connect(self.update_score_inputs)
