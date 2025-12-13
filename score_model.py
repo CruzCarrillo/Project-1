@@ -1,85 +1,89 @@
 import csv
+import os
+from typing import List, Union
+
 
 class Score:
-    MIN_SCORE = 0
-    MAX_SCORE = 100
-    # Logic does not account for a MIN_SCORE less than 0. Both MIN_SCORE and MAX_SCORE must be whole numbers.
+    def __init__(self, value: float) -> None:
+        """Create a score with a numeric value."""
+        self.value: float = value
 
-    def __init__(self, value: int) -> None:
-        self.value = value
 
-    def grade(self, best_score: int) -> str: #Logic as given by Lab 2
-        if self.value >= best_score - 10:
-            return "A"
-        if self.value >= best_score - 20:
-            return "B"
-        if self.value >= best_score - 30:
-            return "C"
-        if self.value >= best_score - 40:
-            return "D"
-        return "F"
-
-class GradeBook: #Creates GradeBook class to save scores to CSV
+class ScoreBook:
     def __init__(self, csv_filename: str) -> None:
-        self.csv_filename = csv_filename
-        self.scores = []
+        """Create a score book that saves to a CSV file."""
+        self.csv_filename: str = csv_filename
+        self.scores: List[Score] = []
+        self.name: str = ""
 
-    def set_scores(self, values) -> None: #Adds scores as given by user to new list
+    def set_name(self, name: str) -> None:
+        """Set the student's name."""
+        self.name = name
+
+    def set_scores(self, values: List[float]) -> None:
+        """Set scores from a list of numeric values."""
         self.scores = []
         i = 0
         while i < len(values):
-            score_object = Score(values[i])
-            self.scores.append(score_object)
+            self.scores.append(Score(values[i]))
             i += 1
 
-    def best_score(self) -> int: #Finds best score in scores
-        best = self.scores[0].value
-        i = 1
-        while i < len(self.scores):
-            if self.scores[i].value > best:
-                best = self.scores[i].value
-            i += 1
-        return best
+    def average_score(self) -> float:
+        """Return the average of current scores."""
+        if len(self.scores) == 0:
+            raise ZeroDivisionError("No scores to average.")
 
-    def test_scores(self, raw: str, expected_count: int) -> None: #Logic for making sure scores inputted are valid
-        range_message = (f"Please input a whole number from {Score.MIN_SCORE} to {Score.MAX_SCORE}.")
-
-        parts = raw.split()
-
-        if len(parts) < expected_count:
-            raise ValueError(f"You must enter at least {expected_count} score(s).")
-
-        parts = parts[:expected_count]
-
-        values = []
+        total = 0.0
         i = 0
-        while i < len(parts):
-            p = parts[i].strip()
-
-            if not p.isdigit():
-                raise ValueError(range_message)
-
-            number = int(p)
-
-            if number < 0:
-                raise ValueError(range_message)
-
-            if number < Score.MIN_SCORE or number > Score.MAX_SCORE:
-                raise ValueError(range_message)
-
-            values.append(number)
+        while i < len(self.scores):
+            total += self.scores[i].value
             i += 1
-
-        self.set_scores(values)
+        return total / len(self.scores)
 
     def save_to_csv(self) -> None:
-        best = self.best_score()
+        """Save the current record to a CSV file."""
+        score_values: List[Union[float, str]] = []
+        i = 0
+        while i < len(self.scores):
+            score_values.append(self.scores[i].value)
+            i += 1
 
-        with open(self.csv_filename, "w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(["student_number", "score", "grade"])
+        while len(score_values) < 4:
+            score_values.append("")
 
-            i = 1
-            for score in self.scores:
-                writer.writerow([i, score.value, score.grade(best)])
-                i += 1
+        try:
+            avg = self.average_score()
+        except ZeroDivisionError:
+            avg = 0.0
+
+        try:
+            folder = os.path.dirname(self.csv_filename)
+            if folder != "" and not os.path.exists(folder):
+                # found this on the internet, through https://www.geeksforgeeks.org/python/python-check-if-a-file-or-directory-exists/
+                # we may have covered this, but I don't remember
+                raise FileNotFoundError(f"Directory does not exist: {folder}")
+
+            with open(self.csv_filename, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    "name",
+                    "score_1",
+                    "score_2",
+                    "score_3",
+                    "score_4",
+                    "average"
+                ])
+                writer.writerow([
+                    self.name,
+                    score_values[0],
+                    score_values[1],
+                    score_values[2],
+                    score_values[3],
+                    f"{avg:.2f}"
+                ])
+        except FileNotFoundError:
+            raise
+        except PermissionError:
+            raise
+        except OSError:
+            raise

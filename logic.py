@@ -1,57 +1,189 @@
-import sys
-from PyQt6.QtWidgets import *
-from scores_ui import Ui_MainWindow
-from score_model import GradeBook
+import os
+from typing import List
 
-class ScoreWindow(QMainWindow): #ui logic
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from scores_ui import Ui_MainWindow
+from score_model import ScoreBook
+
+
+class ScoreWindow(QMainWindow):
     def __init__(self) -> None:
+        """Create the main application window."""
         QMainWindow.__init__(self)
-        self.ui = Ui_MainWindow()
+
+        self.ui: Ui_MainWindow = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.gradebook = GradeBook("scores.csv")
+        self.scorebook: ScoreBook = ScoreBook("scores.csv")
 
         self.ui.pushButtonCalculate.clicked.connect(self.on_calculate_clicked)
+        self.ui.lineEditStudents.textChanged.connect(self.update_score_inputs)
 
-    def show_error(self, message: str) -> None: #ui displaying errors
-        self.ui.textEditOutput.setPlainText(message)
-        self.statusBar().showMessage(message)
+        self.update_score_inputs()
+
+    def show_error(self, message: str) -> None:
+        """Display an error message."""
+        self.ui.labelError.setText(message)
+        self.ui.labelStatus.setText("")
+
+    def clear_error(self) -> None:
+        """Clear any error message."""
+        self.ui.labelError.setText("")
+
+    def show_status(self, message: str) -> None:
+        """Display a status message."""
+        self.ui.labelStatus.setText(message)
+
+    def clear_status(self) -> None:
+        """Clear any status message."""
+        self.ui.labelStatus.setText("")
+
+    def update_score_inputs(self) -> None:
+        """Show or hide score inputs based on the number entered."""
+        try:
+            text = self.ui.lineEditStudents.text().strip()
+        except Exception:
+            self.show_error("Unexpected input error.")
+            return
+
+        if text.isdigit():
+            try:
+                n = int(text)
+            except ValueError:
+                n = 0
+        else:
+            n = 0
+
+        self.ui.labelScore1.setVisible(False)
+        self.ui.lineEditScore1.setVisible(False)
+        self.ui.labelScore2.setVisible(False)
+        self.ui.lineEditScore2.setVisible(False)
+        self.ui.labelScore3.setVisible(False)
+        self.ui.lineEditScore3.setVisible(False)
+        self.ui.labelScore4.setVisible(False)
+        self.ui.lineEditScore4.setVisible(False)
+
+        if 1 <= n <= 4:
+            self.ui.labelScore1.setVisible(True)
+            self.ui.lineEditScore1.setVisible(True)
+        if 2 <= n <= 4:
+            self.ui.labelScore2.setVisible(True)
+            self.ui.lineEditScore2.setVisible(True)
+        if 3 <= n <= 4:
+            self.ui.labelScore3.setVisible(True)
+            self.ui.lineEditScore3.setVisible(True)
+        if 4 <= n <= 4:
+            self.ui.labelScore4.setVisible(True)
+            self.ui.lineEditScore4.setVisible(True)
 
     def on_calculate_clicked(self) -> None:
-        num_text = self.ui.lineEditStudents.text().strip()
-        if num_text == "":
-            self.show_error("Please enter the total number of students.") #for blank input
-            return
-        if not num_text.isdigit():
-            self.show_error("Number of students must be an integer.") #for NaN input
-            return
-        num_students = int(num_text)
-        if num_students <= 0:
-            self.show_error("Number of students must be positive.") #for negative or 0 input
-            return
-        scores_text = self.ui.lineEditScores.text().strip()
-        if scores_text == "":
-            self.show_error("Please enter the student score(s).") #displays error in ui
+        """Validate inputs, display results, and save to csv."""
+        self.clear_error()
+        self.clear_status()
+
+        try:
+            name = self.ui.lineEditName.text().strip()
+        except Exception:
+            self.show_error("Unexpected input error.")
             return
 
-        try: #only have one exception
-            self.gradebook.test_scores(scores_text, num_students)
-        except ValueError as e:
-            self.show_error(str(e))
+        if name == "":
+            self.show_error("Please enter the student's name.")
             return
 
-        best = self.gradebook.best_score()
+        try:
+            attempts_text = self.ui.lineEditStudents.text().strip()
+        except Exception:
+            self.show_error("Unexpected input error.")
+            return
 
-        lines = []
-        i = 1
-        for score in self.gradebook.scores: #finds best score
-            grade = score.grade(best)
-            line = f"Student {i} score is {score.value} and grade is {grade}"
-            lines.append(line)
+        if attempts_text == "":
+            self.show_error("Please enter how many scores you want to submit (1-4).")
+            return
+        if not attempts_text.isdigit():
+            self.show_error("Number of scores must be an integer from 1 to 4.")
+            return
+
+        try:
+            attempts = int(attempts_text)
+        except ValueError:
+            self.show_error("Number of scores must be an integer from 1 to 4.")
+            return
+
+        if attempts < 1 or attempts > 4:
+            self.show_error("Number of scores must be between 1 and 4.")
+            return
+
+        score_edits = [
+            self.ui.lineEditScore1,
+            self.ui.lineEditScore2,
+            self.ui.lineEditScore3,
+            self.ui.lineEditScore4
+        ]
+
+        values: List[float] = []
+        i = 0
+        while i < attempts:
+            try:
+                raw = score_edits[i].text().strip()
+            except Exception:
+                self.show_error("Unexpected input error.")
+                return
+
+            if raw == "":
+                self.show_error(f"Score {i + 1} is required.")
+                return
+
+            try:
+                number = float(raw)
+            except ValueError:
+                self.show_error("Scores must be numbers from 1 to 100.")
+                return
+
+            if number < 1 or number > 100:
+                self.show_error("Scores must be numbers from 1 to 100.")
+                return
+
+            values.append(number)
             i += 1
 
-        output = "\n".join(lines) #displays the final output in ui
-        self.ui.textEditOutput.setPlainText(output)
+        self.scorebook.set_name(name)
+        self.scorebook.set_scores(values)
 
-        self.gradebook.save_to_csv()
-        self.statusBar().showMessage("Saved to scores.csv")
+        try:
+            average = self.scorebook.average_score()
+        except ZeroDivisionError:
+            self.show_error("Cannot compute average with no scores.")
+            return
+
+        lines: List[str] = []
+        lines.append(f"Name: {name}")
+        lines.append(f"Scores submitted: {attempts}")
+        lines.append("Scores: " + ", ".join([str(v) for v in values]))
+        lines.append(f"Average: {average:.2f}")
+
+        try:
+            self.ui.textEditOutput.setPlainText("\n".join(lines))
+        except Exception:
+            self.show_error("Unexpected output error.")
+            return
+
+        try:
+            folder = os.path.dirname(self.scorebook.csv_filename)
+            if folder != "" and not os.path.exists(folder):
+                # found this on the internet, through https://www.geeksforgeeks.org/python/python-check-if-a-file-or-directory-exists/
+                self.show_error("Cannot save: folder for CSV does not exist.")
+                return
+
+            self.scorebook.save_to_csv()
+        except FileNotFoundError:
+            self.show_error("Cannot save: file or folder was not found.")
+            return
+        except PermissionError:
+            self.show_error("Cannot save: permission denied.")
+            return
+        except OSError:
+            self.show_error("Cannot save: an OS error occurred.")
+            return
+
+        self.show_status("Submitted")
